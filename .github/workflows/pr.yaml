@@ -1,0 +1,55 @@
+---
+name: Pull Request Tests
+on:
+  pull_request:
+    branches:
+      - "master"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run clang-format
+        run: |
+          sudo apt update
+          sudo apt install clang-format-20 -y
+          cd BOF-Collection
+          find . -maxdepth 1 -type f -name "*.cpp" | while read f; do clang-format-20 --Werror --dry-run "${f}"; done
+  build:
+    needs: [format]
+    runs-on: "windows-latest"
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x86
+
+      - name: Build x86
+        run: |
+          msbuild /p:Configuration=Release /p:Platform=x86
+
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: Build x64
+        run: |
+          msbuild /p:Configuration=Release /p:Platform=x64
+
+      - name: Stage
+        run: |
+          mkdir stage
+          cp C2/* stage
+          cp x64/Release/*.x64.o stage
+          cp Release/*.x86.o stage
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v6
+        with:
+          path: stage/

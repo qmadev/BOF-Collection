@@ -1,0 +1,13 @@
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.env
+
+.vs/
+Debug/
+Release/
+x64/
+Packages/
